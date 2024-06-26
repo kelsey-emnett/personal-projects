@@ -7,18 +7,15 @@ import numpy as np
 
 
 def fit_model(
-    model: Any, 
-    feature_list: list[str], 
-    X_train: pd.DataFrame, 
-    y_train: np.ndarray, 
-    X_val: pd.DataFrame, 
-    y_val: np.ndarray, 
-    model_type: str, 
+    model: Any,
+    feature_list: list[str],
+    X_train: pd.DataFrame,
+    y_train: np.ndarray,
+    X_val: pd.DataFrame,
+    y_val: np.ndarray,
+    model_type: str,
     feature_list_name: list[str],
-) -> Tuple[
-    Any,
-    pd.DataFrame,
-    pd.DataFrame]:
+) -> Tuple[Any, pd.DataFrame, pd.DataFrame]:
     """
     Trains and evaluates a model and providing model feature importances.
 
@@ -31,7 +28,7 @@ def fit_model(
         y_val (np.ndarray): Array with validation data actual values
         model_type (str): String with model type
         feature_list_name (list[str]): String with name of the model feature list
-    
+
     Returns:
         fitted_model (Any): Scikit-learn model fitted with training dataset
         model_results (pd.DataFrame): Dataframe with model evaluation results
@@ -50,21 +47,48 @@ def fit_model(
     mape_train = mean_absolute_percentage_error(y_train, predictions_train)
     mae_train = mean_absolute_error(y_train, predictions_train)
 
-    model_results = pd.DataFrame([[model_type, feature_list_name, mse, mape, mae, 
-                                mse_train, mape_train, mae_train]], 
-                                columns = ["model", "features", "mse_val", "mape_val", 
-                                            "mae_val", "mse_train", "mape_train", "mae_train"])
-    
-    if hasattr(fitted_model, "feature_importances_") == True:
-        feature_importances = pd.DataFrame(pd.Series(feature_list), columns=["features"])
+    model_results = pd.DataFrame(
+        [
+            [
+                model_type,
+                feature_list_name,
+                mse,
+                mape,
+                mae,
+                mse_train,
+                mape_train,
+                mae_train,
+            ]
+        ],
+        columns=[
+            "model",
+            "features",
+            "mse_val",
+            "mape_val",
+            "mae_val",
+            "mse_train",
+            "mape_train",
+            "mae_train",
+        ],
+    )
+
+    if hasattr(fitted_model, "feature_importances_"):
+        feature_importances = pd.DataFrame(
+            pd.Series(feature_list), columns=["features"]
+        )
         feature_importances["importance"] = fitted_model.feature_importances_
-        feature_importances = feature_importances.sort_values("importance", ascending=False)
-    elif hasattr(fitted_model, "coef_") == True:
-        feature_importances = pd.DataFrame(pd.Series(feature_list), columns=["features"])
+        feature_importances = feature_importances.sort_values(
+            "importance", ascending=False
+        )
+    elif hasattr(fitted_model, "coef_"):
+        feature_importances = pd.DataFrame(
+            pd.Series(feature_list), columns=["features"]
+        )
         feature_importances["importance"] = fitted_model.coef_
-        feature_importances = feature_importances.sort_values("importance", ascending=False)
+        feature_importances = feature_importances.sort_values(
+            "importance", ascending=False
+        )
     else:
         feature_importances = pd.DataFrame([])
-
 
     return fitted_model, model_results, feature_importances

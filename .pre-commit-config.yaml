@@ -1,5 +1,5 @@
 default_language_version:
-    python: python3.11
+    python: python3.10
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -25,7 +25,7 @@ repos:
       - id: ruff-format
         types_or: [python, jupyter]
 
-- repo: http://github.com/roy-ht/pre-commit-jupyter
-  rev: v1.2.1
-  hooks:
-      - id: jupyter-notebook-cleanup
+  - repo: http://github.com/roy-ht/pre-commit-jupyter
+    rev: v1.2.1
+    hooks:
+        - id: jupyter-notebook-cleanup

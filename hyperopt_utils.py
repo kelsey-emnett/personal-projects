@@ -1,7 +1,6 @@
 from typing import Any, Tuple
 import configs.hyperopt_config as hyperopt_config
-import hyperopt
-from hyperopt import fmin, tpe, hp, SparkTrials, STATUS_OK, space_eval
+from hyperopt import fmin, tpe, hp, SparkTrials, STATUS_OK
 from sklearn.svm import SVR
 from sklearn.linear_model import Ridge, Lasso, ElasticNet
 from sklearn.ensemble import GradientBoostingRegressor, RandomForestRegressor
@@ -14,6 +13,7 @@ import pandas as pd
 
 INTEGER_PARAMETERS = ["max_depth", "min_samples_split", "n_estimators", "n_neighbors"]
 
+
 class Hyperopt:
     """
     Class that performs extensive hyperparameter evaluation with Hyperopt to identify
@@ -21,17 +21,16 @@ class Hyperopt:
     """
 
     def __init__(
-        self, 
+        self,
         X_train: pd.DataFrame,
         y_train: np.ndarray,
         X_val: pd.DataFrame,
         y_val: np.ndarray,
         features_dict: dict[str, list[str]],
-        apply_overfit_penalty: bool = False, 
-        overfit_penalty_value: float = 0.1, 
+        apply_overfit_penalty: bool = False,
+        overfit_penalty_value: float = 0.1,
         overfit_percent_cutoff: float = 0.1,
     ):
-
         self.X_train = X_train
         self.y_train = y_train
         self.X_val = X_val
@@ -40,19 +39,16 @@ class Hyperopt:
         self.apply_overfit_penalty = apply_overfit_penalty
         self.overfit_penalty_value = overfit_penalty_value
         self.overfit_percent_cutoff = overfit_percent_cutoff
-    
-    def round_hyperparameters(
-        self, 
-        params: dict[str, Any]
-    ) -> dict[str, Any]:
+
+    def round_hyperparameters(self, params: dict[str, Any]) -> dict[str, Any]:
         """
-        Rounds hyperparameters that are required to be integers in the 
+        Rounds hyperparameters that are required to be integers in the
         Hyperopt package because they are not automatically converted.
 
         Args:
             params (dict[str, Any]): Dictionary with hyperparameters prior to
                 processing
-        
+
         Returns:
             params (dict[str, Any]): Dictonary with hyperparameters after integer
                 hyperparameters have been converted to integers
@@ -67,15 +63,14 @@ class Hyperopt:
         return params
 
     def subset_hyperopt_models(
-        self, 
-        subset_model_list: list[str]
+        self, subset_model_list: list[str]
     ) -> list[dict[str, dict[str, Any]]]:
         """
         Subsets models to hyperparameter tune with a user-provided list
 
         Args:
             subset_model_list (list[str]): Models on which to run hyperparameter tuning
-        
+
         Returns:
             hyperopt_search_space (dict[str, dict[str, Any]]): Hyperopt search space for
                 user-chosen models
@@ -85,15 +80,13 @@ class Hyperopt:
         hyperopt_search_space = []
 
         for model_name in subset_model_list:
-
             hyperopt_search_space.append(model_dict[model_name])
 
         return hyperopt_search_space
 
-
     def extract_model(
-        self, 
-        model_name: str, 
+        self,
+        model_name: str,
         **params: dict[str, Any],
     ) -> Any:
         """
@@ -103,7 +96,7 @@ class Hyperopt:
         Args:
             model_name (str): String value specifying model type to extract
             params (dict[str, Any]): Dictionary with model hyperparameters
-        
+
         Returns:
             model (Any): Scikit-learn model of specified type with given hyperparameters
         """
@@ -128,9 +121,9 @@ class Hyperopt:
         return model
 
     def objective(
-        self, 
+        self,
         params: dict[str, Any],
-    ) -> dict[str, float|str]:
+    ) -> dict[str, float | str]:
         """
         Objective function used for hyperopt training. Evaluates a model with
         given hyperparameters. Provides a penalty for overfitting if directed
@@ -138,7 +131,7 @@ class Hyperopt:
 
         Args:
             params (dict[str, Any]): Dictionary with model hyperparameters
-        
+
         Returns:
             dict[str, Any]: Dictionary with modeling evaluation metric and final
                 modeling status
@@ -160,13 +153,15 @@ class Hyperopt:
         fitted_model = model.fit(X_train[feature_list], y_train)
         train_predictions = fitted_model.predict(X_train[feature_list])
         val_predictions = fitted_model.predict(X_val[feature_list])
-        
+
         val_mae = mean_absolute_error(y_val, val_predictions)
         train_mae = mean_absolute_error(y_train, train_predictions)
 
         if self.apply_overfit_penalty:
             train_val_pct_diff = (val_mae - train_mae) / train_mae
-            if (train_mae > val_mae) and (train_val_pct_diff < -(self.overfit_percent_cutoff)):
+            if (train_mae > val_mae) and (
+                train_val_pct_diff < -(self.overfit_percent_cutoff)
+            ):
                 final_metric = val_mae * (1 + self.overfit_penalty_value)
             else:
                 final_metric = val_mae
@@ -174,32 +169,39 @@ class Hyperopt:
             final_metric = val_mae
 
         return {"loss": final_metric, "status": STATUS_OK}
-    
+
     def run_hyperopt(
         self,
-        subset_model_list: list[str] = ["rf", "gbt", "decision_trees", 
-                                        "ridge", "lasso", "elastic_net", 
-                                        "knn", "svm"],
+        subset_model_list: list[str] = [
+            "rf",
+            "gbt",
+            "decision_trees",
+            "ridge",
+            "lasso",
+            "elastic_net",
+            "knn",
+            "svm",
+        ],
         max_evals: int = 50,
     ) -> Tuple[pd.DataFrame, Any]:
         """
-        Runs hyperopt hyperparameter tuning with provided search space and models. 
-        Performs Bayesian optimization to efficiently search the feature space and 
+        Runs hyperopt hyperparameter tuning with provided search space and models.
+        Performs Bayesian optimization to efficiently search the feature space and
         find the best model.
 
         Args:
             subset_model_list (list[str]): List with list of models to include in
                 hyperparameters tuning
             max_evals (int): Number of models to train to identify the ideal hyperparameters
-        
+
         Returns:
-            best_result (dict[str, Any]): Dictionary with the best hyperparameters used to 
+            best_result (dict[str, Any]): Dictionary with the best hyperparameters used to
                 create the chosen model
             search_space (dict[str, dict[str, Any]]): Search space used to run hypopt. This is
                 used in combination with the best_result dictionary to obtain the final
                 hyperparameters
         """
-        algo=tpe.suggest
+        algo = tpe.suggest
         spark_trials = SparkTrials()
         model_list = self.subset_hyperopt_models(subset_model_list)
         search_space = hp.choice("regressor_type", model_list)
@@ -212,6 +214,5 @@ class Hyperopt:
                 max_evals=max_evals,
                 trials=spark_trials,
             )
-        
-        return best_result, search_space
 
+        return best_result, search_space

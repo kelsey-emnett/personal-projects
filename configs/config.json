@@ -1,5 +1,5 @@
 {
   "data_path": "dbfs:/databricks-datasets/learning-spark-v2/sf-airbnb/sf-airbnb-clean.parquet",
-  "target_col": "price",
-  "seed": 123
+  "seed": 123,
+  "target_col": "price"
 }
